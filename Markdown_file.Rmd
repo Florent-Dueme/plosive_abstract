@@ -1,12 +1,16 @@
 ---
-title: "Plosives_results"
+title: "Plosives results (plosion index)"
 author: "Florent Dueme"
 date: "30/11/2021"
 output: html_document
 ---
 
+This is a Markdown document to present the results of the plosive (plosioin index) part of the FrSpBil experiment.
+
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+Sys.setenv(LANG = "en") # Set error language to English
 library(tidyverse)
 library(ggplot2)
 library(lme4)
@@ -16,14 +20,11 @@ library(MASS) # Function MASS::fractions
 library(sjPlot) # Function sjPlot::tab_model
 ```
 
-# Plosives
-
-This is a Markdown document to present the results of the plosive par of the FrSpBil experiment.
 
 ```{r load_data, include=FALSE}
-data = as.data.frame(read.csv("frspbil_plosives_22_09_2021.csv", sep=";"),header=T,sep=";",dec=".")
+data = as.data.frame(read.csv("all_data_burst_24_01_2022.csv", sep=";"),header=T,sep=";",dec=".")
 
-data$Plosive_Index = as.numeric(data$Plosive_Index)
+data$Plosion_index = as.numeric(data$Plosion_index)
 data$VOT = as.numeric(data$VOT)
 data$Length = as.numeric(data$Length)
 
@@ -70,8 +71,8 @@ contrasts(spanish$Grapheme) <- b_VS_v
 
 # Custom contrast for task
 Contrasts <- rbind(
-  Name_Vs_Rest = c(name=2, PW=-1, read=-1),
-  read_VS_PW = c(name=0, PW=1, read=-1)
+  Naming_Vs_Reading = c(name=2, PW=-1, read=-1),
+  Word_VS_PW = c(name=0, PW=1, read=-1)
 ) 
 
 # fractions(t(Contrasts))
@@ -88,43 +89,39 @@ contrast_mat <- ginv2(Contrasts)
 
 ```
 
-```{r Mean-center, include=FALSE}
-
-# Mean center the data
-# french$Plosive_Index <- scale(french$Plosive_Index, scale = FALSE)
-# spanish$Plosive_Index <- scale(spanish$Plosive_Index, scale = FALSE)
-
-```
-
 
 
 ```{r French_model}
 
-# Why do I get a triple interaction here, in the comparison between Picture Naming and the two other tasks?
-# But I also get a singular warning, and a "Nans produced" error
+# The full model fails to converge
+PI_f_no_convergence <-lmer(log(Plosion_index) ~ Group*Grapheme*Task + Gender + (Grapheme|Speaker) + (Group|Word), data = french, 
+                           contrasts = list(Task = contr.sum(3)), control=lmerControl(optCtrl=list(maxfun=50000), optimizer="bobyqa"))
 
-PI_f <-lmer(log(Plosive_Index) ~ Task*Group*Grapheme + Gender + (Task|Speaker) + (Grapheme|Speaker) + (Group|Word), data = french,
-            contrasts = list(Task=contrast_mat))
+# After removing the interactions involving Task and some of the random slopes, the model does converge
+# PI_f <-lmer(log(Plosion_index) ~ Group*Grapheme + Gender + Task + (Grapheme|Speaker) + (1|Word), data = french,
+#             contrasts = list(Task=contrast_mat))
 
-# PI_f <-lmer(Plosive_Index ~ Group*Grapheme + Gender + Task + (Grapheme|Speaker) + (Group|Word), data = french)
+summary(PI_f_no_convergence)
 
-# summary(PI_f)
-
-tab_model(PI_f)
-
-# lmer(Distance ~ Time_contrast * Group + (Time_contrast |Participant), data = e_data)
-
+tab_model(PI_f_no_convergence)
 ```
+
+
+```{r}
+anova(PI_f, PI_f_no_convergence)
+```
+
 
 
 ```{r Spanish_model}
 
-PI_s <-lmer(log(Plosive_Index) ~ Group*Grapheme*Task + Gender + (Task|Speaker) + (Grapheme|Speaker) + (Group|Word), data = spanish,
-            contrasts = list(Task=contrast_mat))
+PI_s <-lmer(log(Plosion_index) ~ Group*Grapheme*Task + Gender + (Grapheme|Speaker) + (1|Word), data = spanish,
+contrasts = list(Task=contrast_mat))
 
-# PI_s <-lmer(log(Plosive_Index) ~ Group*Grapheme + Task + Gender + (Grapheme|Speaker) + (Group|Word), data = spanish)
+# PI_s <-lmer(log(Plosion_index) ~ Group*Grapheme + Task + Gender + (Grapheme|Speaker) + (Group|Word), data = spanish,
+#             contrasts = list(Task=contrast_mat))
            
-# summary(PI_s)
+summary(PI_s)
 
 tab_model(PI_s)
 
@@ -135,15 +132,24 @@ tab_model(PI_s)
 
 # Now using only the tokens not produced as fricatives
 
-spanish_plo <- spanish[spanish$Fricatived == "False",]
+spanish_plo <- spanish[spanish$Burst == 1,]
 
-# Why isn't this significant any more?
-PI_s_plo <-lmer(Plosive_Index ~ Group*Grapheme + Gender + (Grapheme|Speaker) + (Group|Word), data = spanish_plo)
-           
-summary(PI_s)
+PI_s_plo <-lmer(log(Plosion_index) ~ Group*Grapheme + Gender + Task + (Grapheme|Speaker) + (Group|Word), data = spanish_plo)
 
 tab_model(PI_s_plo)
 
 ```
+
+
+```{r Spanish_burst}
+
+xtabs( ~ Group + Grapheme + Burst, data=data)
+
+logistic <- glm(Burst ~ Group*Grapheme, data=spanish, family="binomial")
+summary(logistic)
+
+```
+
+
 
 
