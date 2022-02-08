@@ -1,0 +1,182 @@
+---
+title: "Markdown_file_Bates_2018_Selection"
+author: "Florent Dueme"
+date: "07/02/2022"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+Sys.setenv(LANG = "en") # Set error language to English
+library(tidyverse)
+library(ggplot2)
+library(lme4)
+library(emmeans)
+library(rstatix) # Function rstatix::convert_as_factor
+library(MASS) # Function MASS::fractions
+library(sjPlot) # Function sjPlot::tab_model
+```
+
+
+```{r load_data, include=FALSE}
+data = as.data.frame(read.csv("all_data_burst_24_01_2022.csv", sep=";"),header=T,sep=";",dec=".")
+
+data$Plosion_index = as.numeric(data$Plosion_index)
+data$VOT = as.numeric(data$VOT)
+data$Length = as.numeric(data$Length)
+
+str(data)
+```
+
+
+
+```{r Prepare_data, include=FALSE}
+
+# Separate data by language
+french <- data[data$Language=="French",]
+spanish <- data[data$Language=="Spanish",]
+
+
+# Make factors
+french <- french %>% convert_as_factor(Speaker, Gender, Group, Task, Grapheme, Word)
+french$Group <- relevel(french$Group, 'Monolinguals')
+french$Grapheme <- relevel(french$Grapheme, 'b')
+
+spanish <- spanish %>% convert_as_factor(Speaker, Gender, Group, Task, Grapheme, Word)
+spanish$Group <- relevel(spanish$Group, 'Monolinguals')
+spanish$Grapheme <- relevel(spanish$Grapheme, 'b')
+
+
+str(french)
+str(spanish)
+```
+
+```{r Contrasts, include=FALSE}
+
+# Create contrasts
+F_VS_M <- c(-1, 1)
+Mono_VS_Bi <- c(-1, 1)
+b_VS_v <- c(-1, 1)
+
+contrasts(french$Gender) <- F_VS_M
+contrasts(french$Group) <- Mono_VS_Bi
+contrasts(french$Grapheme) <- b_VS_v
+
+contrasts(spanish$Gender) <- F_VS_M
+contrasts(spanish$Group) <- Mono_VS_Bi
+contrasts(spanish$Grapheme) <- b_VS_v
+
+# Custom contrast for task
+Contrasts <- rbind(
+  Naming_Vs_Reading = c(name=2, PW=-1, read=-1),
+  Word_VS_PW = c(name=0, PW=1, read=-1)
+) 
+
+# fractions(t(Contrasts))
+
+# Function to calculate general inverse
+ginv2 <- function(x)
+  fractions(provideDimnames(ginv(x),
+                            base=dimnames(x)[2:1]))
+
+
+contrast_mat <- ginv2(Contrasts)
+
+# contrast_mat
+
+```
+
+
+
+```{r French_model}
+
+# The full model fails to converge
+PI_f_no_convergence <-lmer(log(Plosion_index) ~ Group*Grapheme*Task + Gender + (Grapheme*Task|Speaker) + (Group|Word), data = french, contrasts = list(Task = contrast_mat), REML=FALSE)
+
+summary(PI_f_no_convergence)
+
+```
+
+
+```{r model PCA}
+results = RePsychLing::rePCA(PI_f_no_convergence)
+
+summary(results)
+```
+
+
+
+```{r PCA visualization Speaker}
+
+var_explained_speaker = results$Speaker$sdev^2 / sum(results$Speaker$sdev^2)
+
+print(var_explained_speaker)
+
+qplot(c(1:6), var_explained_speaker) + 
+  geom_line() + 
+  xlab("Principal Component") + 
+  ylab("Variance Explained") +
+  ggtitle("Scree Plot") +
+  ylim(0, 1)
+
+
+```
+
+
+
+```{r PCA visualization Word}
+
+var_explained_word = results$Word$sdev^2 / sum(results$Word$sdev^2)
+
+print(var_explained_word)
+
+qplot(c(1:2), var_explained_word) + 
+  geom_line() + 
+  xlab("Principal Component") + 
+  ylab("Variance Explained") +
+  ggtitle("Scree Plot") +
+  ylim(0, 1)
+
+
+```
+
+```{r French model 2}
+PI_f_2 <-lmer(log(Plosion_index) ~ Group*Grapheme*Task + Gender + (Group*Grapheme|Speaker) + (1|Word), data = french, contrasts = list(Task = contrast_mat), REML=FALSE)
+
+summary(PI_f_2)
+```
+
+```{r model comparison 1}
+comp_1 = anova(PI_f_2, PI_f_no_convergence, test='F')
+
+summary(comp_1)
+```
+
+
+
+```{r PCA model 2}
+results_2 = RePsychLing::rePCA(PI_f_2)
+
+summary(results_2)
+```
+
+
+```{r}
+
+var_explained_speaker_2 = results_2$Speaker$sdev^2 / sum(results_2$Speaker$sdev^2)
+
+print(var_explained_speaker_2)
+
+qplot(c(1:5), var_explained_speaker_2) + 
+  geom_line() + 
+  xlab("Principal Component") + 
+  ylab("Variance Explained") +
+  ggtitle("Scree Plot") +
+  ylim(0, 1)
+```
+
+
+
+
+

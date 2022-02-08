@@ -1,4 +1,4 @@
-Language;Group;Speaker;Grapheme;Task;File;Word;Plosion index;VOT;Length;Gender;Burst;Error
+Language;Group;Speaker;Grapheme;Task;File;Word;Plosion_index;VOT;Length;Gender;Burst;Error
 Spanish;Monolinguals;101;b;naming;b_pic_nam_101_baile_1;baile;6.958387346;0.065170068;0.07015873;F;True;
 Spanish;Monolinguals;101;b;naming;b_pic_nam_101_bandera_0;bandera;5.637841478;0.031535732;0.03761572;F;False;
 Spanish;Monolinguals;101;b;naming;b_pic_nam_101_barriga_1;barriga;11.89785644;0.016449232;0.023126643;F;True;
