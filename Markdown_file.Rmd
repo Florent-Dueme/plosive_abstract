@@ -42,24 +42,15 @@ str(data)
 
 ```{r Prepare_data, include=FALSE}
 
-# Separate data by language
-french <- data[data$Language=="French",]
-spanish <- data[data$Language=="Spanish",]
-
-
 # Make factors
-french <- french %>% convert_as_factor(Speaker, Gender, Group, Task, Grapheme, Word)
-french$Group <- relevel(french$Group, 'Monolinguals')
-french$Grapheme <- relevel(french$Grapheme, 'b')
-
-spanish <- spanish %>% convert_as_factor(Speaker, Gender, Group, Task, Grapheme, Word)
-spanish$Group <- relevel(spanish$Group, 'Monolinguals')
-spanish$Grapheme <- relevel(spanish$Grapheme, 'b')
+data <- data %>% convert_as_factor(Speaker, Gender, Group, Task, Grapheme, Word)
+data$Group <- relevel(data$Group, 'Monolinguals')
+data$Grapheme <- relevel(data$Grapheme, 'b')
 
 
-str(french)
-str(spanish)
+str(data)
 ```
+
 
 ```{r Contrasts, include=FALSE}
 
@@ -68,13 +59,9 @@ F_VS_M <- c(-1, 1)
 Mono_VS_Bi <- c(-1, 1)
 b_VS_v <- c(-1, 1)
 
-contrasts(french$Gender) <- F_VS_M
-contrasts(french$Group) <- Mono_VS_Bi
-contrasts(french$Grapheme) <- b_VS_v
-
-contrasts(spanish$Gender) <- F_VS_M
-contrasts(spanish$Group) <- Mono_VS_Bi
-contrasts(spanish$Grapheme) <- b_VS_v
+contrasts(data$Gender) <- F_VS_M
+contrasts(data$Group) <- Mono_VS_Bi
+contrasts(data$Grapheme) <- b_VS_v
 
 # Custom contrast for task
 Contrasts <- rbind(
@@ -96,7 +83,95 @@ contrast_mat <- ginv2(Contrasts)
 
 ```
 
-# 1. French data
+
+```{r Groups, include=FALSE}
+
+
+# Separate data by language
+french <- data[data$Language=="French",]
+spanish <- data[data$Language=="Spanish",]
+
+# Separate data by Group
+bi <- data[data$Group=="Bilinguals",]
+mono <- data[data$Group=="Monolinguals",]
+bi_b <- bi[bi$Grapheme=="b",]
+mono_b <- mono[mono$Grapheme=="b",]
+french_b <- french[french$Grapheme=="b",]
+spanish_b <- spanish[spanish$Grapheme=="b",]
+
+```
+
+
+# 1. Overall /b/ data
+
+<br>
+
+**First of all, as suggested by Clara, I compare the /b/ written with the letter \<b> (to avoid an influence of orthography) for bilinguals and controls in the two languages:**
+
+<br>
+
+![Fig 3.](Plots\B box plot.jpg)
+
+<br>
+
+**Interestingly, it looks like bilinguals here produce /b/ exactly as energetically in French and in Spanish, and in both languages in between the controls in French and in Spanish. They are pretty far away from the French controls in French, and not as far away from the Spanish controls in Spanish, but remember that the graph is on the log scale.**
+
+**In order to check this visual impression, I tried to fit a few model, starting with a model comparing the bilinguals' production of /b/-\<b> in French and in Spanish (with fixed effects of Language and Task and their interaction, as well as random intervals and slopes for both fixed effects). I have 2482 tokens for this data:**
+
+<br>
+
+```{r Bilingual_model}
+
+B_bi <-lmer(log(Plosion_index) ~ Language*Task + Gender + (1 + Language + Task|Speaker) + (1| Word), data = bi_b, contrasts = list(Task=contrast_mat))
+           
+# summary(B_bi)
+
+tab_model(B_bi, show.se = TRUE, show.stat = TRUE, show.ci = NULL, show.re.var = FALSE)
+
+```
+
+<br>
+
+**The model confirms that as far as the plosion index is concerned, there is no difference in the way bilinguals produce /b/-\<b> in Spanish and French. Then I tried to fit models to compare the bilinguals in Spanish and French with the controls in both languages, starting with French. The model had fixed effects of Group and Task and their interaction, as well as a fixed effect for gender. I had 2437 observations for this data:**
+
+<br>
+
+```{r French_model}
+
+B_fr <-lmer(log(Plosion_index) ~ Group*Task + Gender + (1 + Task|Speaker) + (1 + Group| Word), data = french_b, contrasts = list(Task=contrast_mat))
+           
+# summary(B_fr)
+
+tab_model(B_fr, show.se = TRUE, show.stat = TRUE, show.ci = NULL, show.re.var = FALSE)
+
+```
+
+<br>
+
+**Here a bit surprisingly, the effect of Language is not quite significant. I think it might be because I do not have enough data. Somehow, if I remove the fixed effect of Task that does not appear to do much in the model, Language becomes significant. But I feel that Task is an important control variable with the design that we have, so I cannot just remove it.**
+
+**Here is the same model in Spanish, with 2359 observations:**
+
+<br>
+
+```{r Spanish_model}
+
+B_sp <-lmer(log(Plosion_index) ~ Group*Task + Gender + (1 + Task|Speaker) + (1 + Group| Word), data = spanish_b, contrasts = list(Task=contrast_mat))
+           
+# summary(B_sp)
+
+tab_model(B_sp, show.se = TRUE, show.stat = TRUE, show.ci = NULL, show.re.var = FALSE)
+
+```
+
+<br>
+
+**In the Spanish model, the result is the same as in the French model: bilinguals are numerically different from the Spanish controls in Spanish, but the result is not quite significant.**
+
+**In conclusion, for the plosion index data, bilinguals do not make a distinction between French /b/ and Spanish /b/. This is surprising, because in VOT they clearly had two distinct phonetic categories for the two languages. Additionally, the /b/ that they produce in the two languages appear to be in between the /b/ produced by monolinguals in each language, but in both direction the difference is not quite significant.**
+
+
+# 2. French data
 
 
 The data consists of 4864 tokens of the sounds /b/ - \<b> and /v/ - \<v> produced by the bilinguals and the French controls. With this data we were mostly interested in testing whether French-Spanish bilinguals produce a different /v/-<v> sound than French monolingual, due to the influence of the Spanish sound /b/ that can be written <v>.
@@ -105,7 +180,7 @@ I analyzed the data with a mixed-effects linear model. The dependent variable is
 
 <br>
 
-```{r French_model}
+```{r French_bv_model}
 
 # The full model fails to converge
 # PI_f_no_convergence <-lmer(log(Plosion_index) ~ Group*Grapheme*Task + Gender + (Grapheme*Task|Speaker) + (1 + Group|Word), data = french, contrasts = list(Task = contrast_mat), control=lmerControl(optCtrl=list(maxfun=50000), optimizer="bobyqa"))
@@ -126,18 +201,25 @@ Still, the Group * Grapheme interaction has a p-value of .1, so we might as well
 
 <br>
 
-![Fig 1.](Plots/Bar plot French plosives by group.jpg)
+![Fig 2.](Plots/Bar plot French plosives by group.jpg)
 
 <br>
 
-# 2. Spanish data
+# 3. Spanish data
+
+
+If we take a look at the Spanish data, there appears to be a very nice interaction between orthography and group, with a higher PI in the /b/-\<b> condition than in the /b/-\<v> condition, but only for the bilinguals. **This data makes it look like the /b/-\<v> condition is the same for the bilinguals and the controls, and that the difference between the two groups is that the /b/-\<b> condition is produced with a higher plosion index by the bilinguals.**
+
+<br>
+
+![Fig 3.](Plots/Bar plot Spanish b by group.jpg)
 
 
 I fit a similar model to the Spanish data, once again starting from a maximal model and removing random effects, but this time the model converged without removing the random slope for the effect of Group across words, so I kept it in the model. There were 4712 tokens in the Spanish data. 
 
 <br>
 
-```{r Spanish_model}
+```{r Spanish_bv_model}
 
 PI_s <-lmer(log(Plosion_index) ~ Group*Grapheme*Task + Gender + (1 + Grapheme + Task|Speaker) + (1 + Group|Word), data = spanish,
 contrasts = list(Task=contrast_mat), control=lmerControl(optCtrl=list(maxfun=50000), optimizer="bobyqa"))
@@ -154,15 +236,15 @@ The model yields a very nice Group*Grapheme interaction, with /b/-\<b> produced 
 
 <br>
 
-![Fig 2.](Plots/Bar plot Spanish b by group.jpg)
+**Looking at the actual distribution, we can see that here the distributions appear very similar for the /b/-\<b> condition produced by the bilinguals and the Spanish controls, it's just that the whole distribution is shifted slightly upwards for the bilinguals. This is in line with what we found for the general data, that bilinguals produce the sound /b/ in Spanish in a way halfway between the French controls in French and the Spanish controls in Spanish.**
+
+**If we look at the distributions for /b/-\<v> produced by the bilinguals and the Spanish controls however, we can see that the two distributions appear very different, despite the fact that their center is roughly in the same vicinity. To me this indicates that bilinguals produce /b/-\<v> in a qualitatively different way.**
+
+There are two possibilities for this orthographic effect for the bilinguals: (1) they sometimes insert French /v/ in the /b/-\<v> condition, producing a normal Spanish /b/ the rest of the time, and (2) they have a "hybrid" category for /b/-\<v>, producing a sound that is neither /b/ not /v/. A look at the distribution does not seem to indicate a bimodal distribution.
 
 <br>
 
-Ther are two possibilities for this orthographic effect for the bilinguals: (1) they sometimes insert French /v/ in the /b/-\<v> condition, producing a normal Spanish /b/ the rest of the time, and (2) they have a "hybrid" category for /b/-\<v>, producing a sound that is neither /b/ not /v/. A look at the distribution does not seem to indicate a bimodal distribution.
-
-<br>
-
-![Fig 3.](Plots/violin plot.jpg)
+![Fig 4.](Plots/violin plot.jpg)
 
 <br>
 
@@ -216,7 +298,7 @@ Similarly, after removing the non-burst tokens, the distributions do not appear 
 
 <br>
 
-![Fig 4.](Plots/violin plot_burst_only.jpg)
+![Fig 5.](Plots/violin plot_burst_only.jpg)
 
 
 
