@@ -98,6 +98,7 @@ bi_b <- bi[bi$Grapheme=="b",]
 mono_b <- mono[mono$Grapheme=="b",]
 french_b <- french[french$Grapheme=="b",]
 spanish_b <- spanish[spanish$Grapheme=="b",]
+bi_spanish <- bi[bi$Language=="Spanish",]
 
 ```
 
@@ -122,7 +123,7 @@ spanish_b <- spanish[spanish$Grapheme=="b",]
 
 ```{r Bilingual_model}
 
-B_bi <-lmer(log(Plosion_index) ~ Language*Task + Gender + (1 + Language + Task|Speaker) + (1| Word), data = bi_b, contrasts = list(Task=contrast_mat))
+B_bi <-lmer(log2(Plosion_index) ~ Language*Task + Gender + (1 + Language + Task|Speaker) + (1| Word), data = bi_b, contrasts = list(Task=contrast_mat))
            
 # summary(B_bi)
 
@@ -138,7 +139,7 @@ tab_model(B_bi, show.se = TRUE, show.stat = TRUE, show.ci = NULL, show.re.var = 
 
 ```{r French_model}
 
-B_fr <-lmer(log(Plosion_index) ~ Group*Task + Gender + (1 + Task|Speaker) + (1 + Group| Word), data = french_b, contrasts = list(Task=contrast_mat))
+B_fr <-lmer(log2(Plosion_index) ~ Group*Task + Gender + (1 + Task|Speaker) + (1 + Group| Word), data = french_b, contrasts = list(Task=contrast_mat))
            
 # summary(B_fr)
 
@@ -156,7 +157,7 @@ tab_model(B_fr, show.se = TRUE, show.stat = TRUE, show.ci = NULL, show.re.var = 
 
 ```{r Spanish_model}
 
-B_sp <-lmer(log(Plosion_index) ~ Group*Task + Gender + (1 + Task|Speaker) + (1 + Group| Word), data = spanish_b, contrasts = list(Task=contrast_mat))
+B_sp <-lmer(log2(Plosion_index) ~ Group*Task + Gender + (1 + Task|Speaker) + (1 + Group| Word), data = spanish_b, contrasts = list(Task=contrast_mat))
            
 # summary(B_sp)
 
@@ -186,7 +187,7 @@ I analyzed the data with a mixed-effects linear model. The dependent variable is
 # PI_f_no_convergence <-lmer(log(Plosion_index) ~ Group*Grapheme*Task + Gender + (Grapheme*Task|Speaker) + (1 + Group|Word), data = french, contrasts = list(Task = contrast_mat), control=lmerControl(optCtrl=list(maxfun=50000), optimizer="bobyqa"))
 
 # After removing some of the random slopes, a much reduced model ends up converging
-PI_f <-lmer(log(Plosion_index) ~ Group*Grapheme*Task + Gender + (1 + Grapheme + Task|Speaker) + (1|Word), data = french,
+PI_f <-lmer(log2(Plosion_index) ~ Group*Grapheme*Task + Gender + (1 + Grapheme + Task|Speaker) + (1|Word), data = french,
             contrasts = list(Task=contrast_mat), control=lmerControl(optCtrl=list(maxfun=50000), optimizer="bobyqa"))
 
 # summary(PI_f) 
@@ -221,7 +222,7 @@ I fit a similar model to the Spanish data, once again starting from a maximal mo
 
 ```{r Spanish_bv_model}
 
-PI_s <-lmer(log(Plosion_index) ~ Group*Grapheme*Task + Gender + (1 + Grapheme + Task|Speaker) + (1 + Group|Word), data = spanish,
+PI_s <-lmer(log2(Plosion_index) ~ Group*Grapheme*Task + Gender + (1 + Grapheme + Task|Speaker) + (1 + Group|Word), data = spanish,
 contrasts = list(Task=contrast_mat), control=lmerControl(optCtrl=list(maxfun=50000), optimizer="bobyqa"))
   
 # summary(PI_s)
@@ -229,6 +230,19 @@ contrasts = list(Task=contrast_mat), control=lmerControl(optCtrl=list(maxfun=500
 tab_model(PI_s, show.se = TRUE, show.stat = TRUE, show.ci = NULL, show.re.var = FALSE)
 
 ```
+
+
+```{r Spanish_bv_model}
+
+PI_bi_s <-lmer(log2(Plosion_index) ~ Grapheme*Task + Gender + (1 + Grapheme + Task|Speaker) + (1|Word), data = bi_spanish,
+contrasts = list(Task=contrast_mat), control=lmerControl(optCtrl=list(maxfun=50000), optimizer="bobyqa"))
+  
+# summary(PI_bi_s)
+
+tab_model(PI_bi_s, show.se = TRUE, show.stat = TRUE, show.ci = NULL, show.re.var = FALSE)
+
+```
+
 
 <br>
 
@@ -284,7 +298,7 @@ These results would seem to argue in favor of explanation (1) for the effect of 
 
 spanish_plo <- spanish[spanish$Burst == 1,]
 
-PI_s_plo <-lmer(log(Plosion_index) ~ Group*Grapheme*Task + Gender + (1 + Grapheme + Task|Speaker) + (1 + Group|Word), data = spanish_plo,
+PI_s_plo <-lmer(log2(Plosion_index) ~ Group*Grapheme*Task + Gender + (1 + Grapheme + Task|Speaker) + (1 + Group|Word), data = spanish_plo,
 contrasts = list(Task=contrast_mat), control=lmerControl(optCtrl=list(maxfun=50000), optimizer="bobyqa"))
   
 # summary(PI_s_plo)

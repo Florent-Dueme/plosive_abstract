@@ -132,20 +132,21 @@ def violin_plosives(dataframe, lim_y=None, save=False):
         legend=False,
     )
     multi_plot.fig.set_size_inches(15, 12)
-    multi_plot.set_ylabels("Plosion index (log base 2)",
-                           fontsize=14, weight="bold")
+    multi_plot.set_ylabels("Plosion index (unitless ratio)",
+                           fontsize=16, weight="bold")
     multi_plot.set_xlabels("")
     multi_plot.set_xticklabels(
-        ["Controls", "Bilinguals"], fontsize=14, weight="bold"
+        ["Controls", "Bilinguals"], fontsize=16, weight="bold"
     )
 
     if lim_y:
         multi_plot.set(ylim=lim_y)
 
     multi_plot.fig.suptitle(
-        'Spanish /b/-<b> and /b/-<v> by controls and bilingual participants', fontsize=22)
+        'Fig.1 Spanish /b/-<b> and /b/-<v> by controls and bilingual participants', fontsize=22)
 
-    plt.legend(loc=(0.92, 0.85), fontsize=14, prop={"weight": "bold"})
+    plt.legend(loc=(0.92, 0.85), fontsize=30, prop={
+               "weight": "bold", 'size': 20})
 
     # multi_plot.fig.text(0.7, -0.06,'Error Barrs: 95% Confidence Interval', fontsize=10)
 
